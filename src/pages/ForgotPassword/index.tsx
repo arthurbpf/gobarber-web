@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { FiLogIn, FiMail } from 'react-icons/fi';
 import { FormHandles } from '@unform/core';
 import { Form } from '@unform/web';
@@ -15,18 +15,23 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 
 import logoImg from '../../assets/logo.svg';
+import api from '../../services/apiClient';
 
 interface ForgotPasswordFormData {
   email: string;
 }
 
 const ForgotPassword: React.FC = () => {
+  const [loading, setLoading] = useState(false);
   const formRef = useRef<FormHandles>(null);
+
   const { addToast } = useToast();
 
   const handleSubmit = useCallback(
     async (data: ForgotPasswordFormData) => {
       try {
+        setLoading(true);
+
         formRef.current?.setErrors({});
 
         const schema = yup.object().shape({
@@ -40,7 +45,15 @@ const ForgotPassword: React.FC = () => {
           abortEarly: false,
         });
 
-        // recuperação de senha
+        await api.post('/password/forgot', {
+          email: data.email,
+        });
+
+        addToast({
+          type: 'success',
+          title: 'E-mail de recuperação enviado',
+          description: 'Enviamos um e-mail para recuperação de senha',
+        });
       } catch (error) {
         if (error instanceof yup.ValidationError) {
           formRef.current?.setErrors(getValidationErrors(error));
@@ -52,6 +65,8 @@ const ForgotPassword: React.FC = () => {
               'Ocorreu um erro ao tentar realizar a recuperação de senha, cheque as credênciais',
           });
         }
+      } finally {
+        setLoading(false);
       }
     },
     [addToast],
@@ -72,7 +87,9 @@ const ForgotPassword: React.FC = () => {
               icon={FiMail}
             />
 
-            <Button type="submit">Recuperar</Button>
+            <Button loading={loading} type="submit">
+              Recuperar
+            </Button>
           </Form>
 
           <Link to="/">
